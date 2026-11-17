@@ -1,0 +1,14 @@
+{
+  "name": "growth-lead-africa-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "nodemailer": "^7.0.3"
+  }
+}
