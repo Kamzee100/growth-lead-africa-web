@@ -1,31 +1,19 @@
-# Growth Lead Africa — Render deployment
+# Growth Lead Africa — Resend email deployment
 
-## Publish the website on Render
+The partnership and volunteer forms send through Resend's HTTPS API from the server. The API key is never exposed to the browser.
 
-1. Create a GitHub repository and upload the contents of this folder to its root. Include `render.yaml`, `package.json`, `server.mjs`, `index.html`, `brand-logo.png`, and `.gitignore`. Do not upload `.env` or passwords.
-2. Sign in at https://render.com and choose **New → Blueprint**.
-3. Connect GitHub and select the repository containing `render.yaml`.
-4. Review the Blueprint and deploy the `growth-lead-africa` web service.
-5. Render assigns a free `https://<service-name>.onrender.com` URL after deployment.
+## Render environment variables
+- `RESEND_API_KEY`: secret key created in Resend.
+- `EMAIL_FROM`: use `onboarding@resend.dev` for initial sandbox testing. Production requires an address on a domain verified in Resend.
+- `EMAIL_TO`: receiving inbox. In sandbox mode, this must be the email address associated with your Resend account. After verifying your own domain, set it to `growthlead05@gmail.com`.
+- `HOST`: `0.0.0.0`.
 
-## Important: contact-form email on Render Free
+## Setup
+1. Create/sign in at https://resend.com.
+2. Create a sending API key at https://resend.com/api-keys. Keep it private.
+3. In Render → service → Environment, set `RESEND_API_KEY`.
+4. For sandbox testing, use `EMAIL_FROM=onboarding@resend.dev` and set `EMAIL_TO` to your Resend account email.
+5. For public form delivery to `growthlead05@gmail.com`, add a domain you own in Resend, publish the DNS records it supplies, wait for verification, then set `EMAIL_FROM` to an address on that verified domain and `EMAIL_TO=growthlead05@gmail.com`.
+6. Save and redeploy. Test both website forms and check the inbox and Resend Logs.
 
-The website can be hosted on Render's free web-service plan, but Render blocks outbound SMTP traffic on ports 25, 465, and 587 for free web services. This app currently sends form submissions through Gmail SMTP, so the contact forms will not deliver email on the free plan even when Gmail credentials are configured.
-
-To enable email delivery, either:
-- use a paid Render web-service instance that permits outbound SMTP, then configure the Gmail App Password below; or
-- update the app to use an email provider's HTTPS API and configure that provider's API key (some providers require a verified sending domain).
-
-Until email delivery is configured, the site itself remains accessible and the forms show a setup/error message rather than silently claiming delivery.
-
-## Gmail SMTP setup (for a plan that permits SMTP)
-
-Enable 2-Step Verification on `growthlead05@gmail.com` and create a Google App Password for Mail. In Render service → Environment, set `SMTP_USER` to `growthlead05@gmail.com` and `SMTP_PASS` to the generated App Password. `HOST=0.0.0.0` is configured by the Blueprint. Never commit `.env`, app passwords, or other credentials to GitHub.
-
-## Local development
-
-Requires Node.js 22 or newer. Run `npm install`, set `SMTP_USER` and `SMTP_PASS` in your shell, then run `npm start`. Open http://127.0.0.1:3000.
-
-## Post-deployment checks
-
-Open the Render URL and check the home page, navigation, and mobile layout. Once email delivery is configured, submit one partnership inquiry and one volunteer inquiry; confirm both arrive at `growthlead05@gmail.com` and that Reply targets the visitor. Render's free web services spin down after 15 minutes without traffic, so the first request after inactivity can take about a minute to wake.
+Never commit API keys to GitHub or paste them into chat. Add them only as Render environment secrets.

@@ -2,7 +2,6 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import nodemailer from 'nodemailer';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
@@ -13,15 +12,10 @@ const RATE_WINDOW_MS = 10 * 60 * 1000;
 const RATE_LIMIT = 5;
 const submissions = new Map();
 
-const smtpUser = (process.env.SMTP_USER || '').trim().toLowerCase();
-const smtpPass = (process.env.SMTP_PASS || '').replace(/\s+/g, '');
-const mailer = smtpUser === SENDER && smtpPass
-  ? nodemailer.createTransport({
-      service: 'Gmail',
-      auth: { user: smtpUser, pass: smtpPass },
-      disableUrlAccess: true,
-    })
-  : null;
+const RESEND_API_KEY = (process.env.RESEND_API_KEY || '').trim();
+const EMAIL_FROM = (process.env.EMAIL_FROM || 'onboarding@resend.dev').trim();
+const EMAIL_TO = (process.env.EMAIL_TO || SENDER).trim();
+const emailConfigured = Boolean(RESEND_API_KEY && EMAIL_FROM && EMAIL_TO);
 
 const types = {
   partnership: 'Partnership inquiry',
@@ -138,7 +132,7 @@ async function handleContact(request, response) {
   if (!types[type] || name.length < 2 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || message.length < 10) {
     return sendJson(response, 400, { error: 'invalid_fields' });
   }
-  if (!mailer) {
+  if (!emailConfigured) {
     return sendJson(response, 503, { error: 'not_configured' });
   }
 
@@ -155,13 +149,26 @@ async function handleContact(request, response) {
   ].filter((line) => line !== undefined);
 
   try {
-    await mailer.sendMail({
-      from: `Growth Lead Africa <${SENDER}>`,
-      to: SENDER,
-      replyTo: { name, address: email },
-      subject: `Growth Lead Africa — ${types[type]}`,
-      text: details.join('\n'),
+    const resendResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: EMAIL_FROM.includes('<') ? EMAIL_FROM : `Growth Lead Africa <${EMAIL_FROM}>`,
+        to: [EMAIL_TO],
+        reply_to: email,
+        subject: `Growth Lead Africa — ${types[type]}`,
+        text: details.join('\n'),
+      }),
+      signal: AbortSignal.timeout(15000),
     });
+    if (!resendResponse.ok) {
+      const errorBody = await resendResponse.text();
+      console.error('Resend email delivery failed:', resendResponse.status, errorBody.slice(0, 500));
+      return sendJson(response, 502, { error: 'delivery_failed' });
+    }
     return sendJson(response, 200, { ok: true });
   } catch (error) {
     console.error('Contact email delivery failed:', error.code || 'smtp_error');
@@ -208,5 +215,5 @@ const server = createServer(async (request, response) => {
 
 server.listen(PORT, HOST, () => {
   console.log(`Growth Lead Africa site listening on http://${HOST}:${PORT}`);
-  if (!mailer) console.warn('Email sending is disabled until SMTP_USER and SMTP_PASS are configured.');
+  if (!emailConfigured) console.warn('Email sending is disabled until RESEND_API_KEY, EMAIL_FROM, and EMAIL_TO are configured.');
 });
