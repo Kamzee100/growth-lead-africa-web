@@ -5,15 +5,12 @@ services:
     plan: free
     buildCommand: npm install
     startCommand: npm start
-    healthCheckPath: /
     envVars:
-      - key: NODE_VERSION
-        value: 22
       - key: HOST
         value: 0.0.0.0
-      - key: RESEND_API_KEY
-        sync: false
       - key: EMAIL_FROM
         value: onboarding@resend.dev
       - key: EMAIL_TO
         value: growthlead05@gmail.com
+      - key: RESEND_API_KEY
+        sync: false

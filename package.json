@@ -1,11 +1,1 @@
-{
-  "name": "growth-lead-africa-web",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "start": "node server.mjs"
-  },
-  "engines": {
-    "node": ">=20.6"
-  }
-}
+{"name":"growth-lead-africa-web","private":true,"type":"module","scripts":{"start":"node server.mjs"},"engines":{"node":">=20.6"}}
